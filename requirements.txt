@@ -1,2 +1,1 @@
-aiohttp==3.13.5
 playwright==1.60.0
