@@ -99,7 +99,7 @@ class bartender_crawler(Star):
             self.page = await self.browser.new_page() # 使用ST_URL网页打开本地服务，等待页面加载完成
             await self.page.goto(self.ST_URL, wait_until="domcontentloaded")
             await self.login_sillytavern()
-            await self.page.wait_for_selector(".welcomeHeaderVersionDisplay",state="visible")
+            await self.page.wait_for_selector("#rightNavDrawerIcon", state="visible")
             logger.info(f"{self.ST_URL}页面加载成功")
         except Exception as e:
             logger.error(f"请检查是否目录下是否有浏览器文件browser文件，或系统安装playwright的运行环境并且下载了浏览器依赖，若无请查看说明进行安装: {e}")
