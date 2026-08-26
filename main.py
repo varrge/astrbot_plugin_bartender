@@ -36,6 +36,30 @@ class bartender_crawler(Star):
         self.waiting_sessions = {} # 初始化会话状态字典，用于记录哪些用户正在等待发送图片，格式为: {"群号_用户ID": 过期时间戳}
         self.plugin_dir = Path(__file__).parent # 获取当前目录
         self.browser_dir = self.plugin_dir / "browser"
+        self.allowed_group_ids = {
+            str(item) for item in config['allowed_group_ids']
+        }
+        self.admin_ids = {str(item) for item in config['admin_ids']}
+
+    def access_error(self, event: AstrMessageEvent, admin: bool = False) -> Optional[str]:
+        """限制插件只能在指定群使用，并保护共享状态的管理操作。"""
+        if str(event.get_group_id() or "") not in self.allowed_group_ids:
+            return "调酒师未在当前会话开放"
+        if admin and str(event.get_sender_id() or "") not in self.admin_ids:
+            return "该操作仅限调酒师管理员"
+        return None
+
+    async def login_sillytavern(self):
+        """登录启用账户模式的 SillyTavern。"""
+        if "/login" not in self.page.url:
+            return
+        await self.page.locator("#userHandle").fill(
+            str(self.config['sillytavern_username'])
+        )
+        await self.page.locator("#userPassword").fill(
+            str(self.config['sillytavern_password'])
+        )
+        await self.page.locator("#loginButton").click()
 
     async def initialize_browser(self):
         """使用 Playwright 来启动浏览器 手动管理线程"""
@@ -74,6 +98,7 @@ class bartender_crawler(Star):
             )
             self.page = await self.browser.new_page() # 使用ST_URL网页打开本地服务，等待页面加载完成
             await self.page.goto(self.ST_URL, wait_until="domcontentloaded")
+            await self.login_sillytavern()
             await self.page.wait_for_selector(".welcomeHeaderVersionDisplay",state="visible")
             logger.info(f"{self.ST_URL}页面加载成功")
         except Exception as e:
@@ -446,12 +471,18 @@ class bartender_crawler(Star):
     @filter.command("酒关闭")
     async def command_close_browser(self, event: AstrMessageEvent):
         """关闭浏览器"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         await bartender_crawler.close_browser(self)
         yield event.plain_result("浏览器已关闭")
 
     @filter.command("酒")
     async def command_send_message(self, event: AstrMessageEvent):
         """酒馆发送信息"""
+        if error := self.access_error(event):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -478,6 +509,9 @@ class bartender_crawler(Star):
     @filter.command("酒重新")
     async def command_rest_message(self, event: AstrMessageEvent):
         """重新生成当前楼层"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -501,6 +535,9 @@ class bartender_crawler(Star):
     @filter.command("酒查看")
     async def command_get_message(self, event: AstrMessageEvent):
         """获取当前最新楼层"""
+        if error := self.access_error(event):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -521,6 +558,9 @@ class bartender_crawler(Star):
     @filter.command("酒状态")
     async def command_get_status(self, event: AstrMessageEvent):
         """获取当前所有状态"""
+        if error := self.access_error(event):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -543,6 +583,9 @@ class bartender_crawler(Star):
     @filter.command("酒切换")
     async def command_chat_switch(self, event: AstrMessageEvent):
         """酒馆切换角色卡"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -564,6 +607,9 @@ class bartender_crawler(Star):
     @filter.command("酒删除")
     async def command_del_message(self, event: AstrMessageEvent):
         """删除聊天楼层"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -594,6 +640,9 @@ class bartender_crawler(Star):
     @filter.command("酒加卡")
     async def upload_chat_command(self, event: AstrMessageEvent):
         """添加角色卡至酒馆"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.status_running: # 判断运行状态
             image_comp = None
             for comp in event.get_messages(): # 1. 遍历当前指令的消息链，寻找是否在同一条消息里就带了图片
@@ -615,6 +664,9 @@ class bartender_crawler(Star):
     @filter.command("酒删卡")
     async def del_chat_command(self, event: AstrMessageEvent):
         """删除聊天楼层"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
@@ -640,6 +692,9 @@ class bartender_crawler(Star):
     @filter.command("酒进程")
     async def del_chrome_command(self, event: AstrMessageEvent):
         """删除后台所有chrome进程"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         if self.config['kill_Process']:
             await bartender_crawler.kill_chrome_process(self)
             yield event.plain_result("已尝试清理所有后台 Chrome/Chromium 进程")
@@ -650,6 +705,9 @@ class bartender_crawler(Star):
     @filter.command("酒重置")
     async def reset_plugin_command(self, event: AstrMessageEvent):
         """重置插件所有参数"""
+        if error := self.access_error(event, admin=True):
+            yield event.plain_result(error)
+            return
         await bartender_crawler.open_browser_auto(self, False)
         self.chats_name_id = {} # 初始化角色字典
         self.status_running = False # 消息状态初始化
@@ -665,6 +723,9 @@ class bartender_crawler(Star):
     @filter.command("酒帮助")
     async def help_command(self, event: AstrMessageEvent):
         """指令帮助指南"""
+        if error := self.access_error(event):
+            yield event.plain_result(error)
+            return
         yield event.plain_result(
             "指令帮助\n"\
             +"/酒 [文字内容]\n"+"用于将用户输入转义给酒馆并且返回结果，不支持图片输入，禁止输入为空\n"
@@ -684,6 +745,8 @@ class bartender_crawler(Star):
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_message_received(self, event: AstrMessageEvent):
         """全局监听消息，用于捕捉等待状态下用户单独发送的角色卡"""
+        if self.access_error(event, admin=True):
+            return
         messages = event.get_messages() # 过滤掉空白消息
         if not messages:
             return

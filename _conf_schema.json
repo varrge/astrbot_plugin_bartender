@@ -47,6 +47,31 @@
         "type": "bool",
         "hint": "开启后允许使用杀进程指令，无差别清理所有chrome浏览器进程",
         "default": false
+    },
+    "allowed_group_ids":{
+        "description":"允许使用的群",
+        "type": "list",
+        "items": {"type": "string"},
+        "hint":"仅列表中的群可以使用调酒师指令",
+        "default": ["1047134405"]
+    },
+    "admin_ids":{
+        "description":"调酒师管理员",
+        "type": "list",
+        "items": {"type": "string"},
+        "hint":"可以操作共享角色卡、楼层和浏览器的用户 ID",
+        "default": ["3390201260", "49E92693D0363BAD7C92C4ED13CB6A88"]
+    },
+    "sillytavern_username":{
+        "description":"SillyTavern 登录账户",
+        "type": "string",
+        "default": "default-user",
+        "invisible": true
+    },
+    "sillytavern_password":{
+        "description":"SillyTavern 登录密码",
+        "type": "string",
+        "default": "",
+        "invisible": true
     }
 }
-
