@@ -126,7 +126,7 @@ class bartender_crawler(Star):
             try:
                 # await self.page.wait_for_timeout(800) # 避免操作过快
                 await self.page.locator("#rightNavDrawerIcon").click() # 打开角色导航栏
-                await self.page.wait_for_selector("#rm_button_characters[title='选择/创建角色']",state="visible",timeout=3000)
+                await self.page.wait_for_selector("#rm_button_characters", state="visible", timeout=3000)
                 return True
             except Exception as e:
                 logger.error(f"打开角色导航栏失败{e}")
@@ -136,7 +136,7 @@ class bartender_crawler(Star):
         """检测角色导航栏是否开启并关闭"""
         try:
             # await self.page.wait_for_timeout(500) # 避免操作过快
-            await self.page.wait_for_selector("#rm_button_characters[title='选择/创建角色']",state="visible",timeout=3000)
+            await self.page.wait_for_selector("#rm_button_characters", state="visible", timeout=3000)
             await self.page.locator("#rightNavDrawerIcon").click() # 关闭角色导航栏
         except Exception as e:
             pass
