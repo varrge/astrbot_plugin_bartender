@@ -483,24 +483,24 @@ class bartender_crawler(Star):
         if error := self.access_error(event):
             yield event.plain_result(error)
             return
+        message_parts = event.message_str.strip().split(maxsplit=1)
+        if len(message_parts) < 2:
+            yield event.plain_result("禁止输入为空")
+            return
+        user_message = message_parts[1]
         if self.status_running:
             self.status_running = False
             await bartender_crawler.open_browser_auto(self, False)
-            user_message = event.message_str.strip()
-            if user_message != "" and user_message != None:
-                yield event.plain_result("调酒中~")
-                user_message = (user_message.split()[1:])[0]
-                bot_id =event.message_obj.self_id # 获取bot_id
-                await bartender_crawler.send_message(self, user_message) # 发送消息至酒馆
-                forward_message =  await bartender_crawler.get_new_message(self, bot_id) # 获取最新的消息
-                remaining = await bartender_crawler.get_now_floor(self,0) # 获取当前楼层数
-                if forward_message != None:
-                    yield MessageEventResult(f"当前共{remaining}楼层")
-                    yield MessageEventResult(chain=[forward_message])
-                else:
-                    yield event.plain_result("合并消息为空")
+            yield event.plain_result("调酒中~")
+            bot_id =event.message_obj.self_id # 获取bot_id
+            await bartender_crawler.send_message(self, user_message) # 发送消息至酒馆
+            forward_message =  await bartender_crawler.get_new_message(self, bot_id) # 获取最新的消息
+            remaining = await bartender_crawler.get_now_floor(self,0) # 获取当前楼层数
+            if forward_message != None:
+                yield MessageEventResult(f"当前共{remaining}楼层")
+                yield MessageEventResult(chain=[forward_message])
             else:
-                yield event.plain_result("禁止输入为空")
+                yield event.plain_result("合并消息为空")
             await bartender_crawler.close_browser_auto(self)
             self.status_running = True
         else:
